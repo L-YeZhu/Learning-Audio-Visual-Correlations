@@ -11,20 +11,20 @@ import torchvision
 from torchvision import transforms
 import torch.optim as optim
 import math
-import torch.utils.models_zoo as models_zoo
+import torch.utils.data
 import matplotlib.pyplot as plt
 
 
 
 class visual_encoder(nn.Module):
-	def __init__(self, z_dim):
+	def __init__(self, z_dim, visual_dim):
 		super(visual_encoder, self).__init__()
 
 
 		## Input: channel nb of input features
 		# Cin = 512 * 7 * 7
 		self.conv_blocks = nn.Sequential(
-            nn.Conv2d(512, 512, 1, 1, 1),
+            nn.Conv2d(visual_dim, 512, 1, 1, 1),
             nn.BatchNorm2d(512),
             nn.ReLU(), # 512 * 9 * 9
             nn.Conv2d(512, 512, 2, 1, 1),
@@ -37,6 +37,7 @@ class visual_encoder(nn.Module):
 
 		## Output size
 		self.conv_out_dim = 1024 * 5 * 5
+		# Out_dim ?: 
 		self.lin_lay = nn.Linear(self.conv_out_dim, z_dim)
 		# print('lin_lay.shape:\n', self.lin_lay.shape)
 
@@ -56,6 +57,7 @@ class visual_decoder(nn.Module):
 			nn.BatchNorm1d(1024 * 5 * 5),
 			nn.ReLU()
 			)
+
 		self.conv_blocks = nn.Sequential(
 			nn.ConvTranspose2d(1024, 512, 4, 2, 1),
 			nn.BatchNorm2d(512),
@@ -76,10 +78,9 @@ class visual_decoder(nn.Module):
 
 
 class audio_encoder(nn.Module):
-	def __init__(self, z_dim, in_dim):
+	def __init__(self, z_dim):
 		super(audio_encoder, self).__init__()
-		in_dim = torch.FloatTensor(in_dim)
-		self.in_size = in_dim.prod()
+
 		self.lin_lays = nn.Sequential(
 			nn.Linear(self.in_size, 256),
 			nn.ReLU(),
@@ -89,19 +90,18 @@ class audio_encoder(nn.Module):
 			nn.ReLU(),
 			nn.Linear(512, z_dim)
 			)
+		# OUT: 512 * 1 
 
 		def forward(self, x):
-			return slef.lin_lays(x.view(-1, self.in_size))
+			return self.lin_lays(x.view(-1, 512))
 
 
 
 class audio_decoder(nn.Module):
-	def __init__(self, z_dim, in_dim):
+	def __init__(self, z_dim, audio_dim):
 		super(audio_decoder,self).__init__()
-		self.in_dim = torch.FloatTensor(in_dim)
-		self.in_size = self.in_dim.prod()
 		self.lin_lays = nn.Sequential(
-			nn.Linear(self.in_size, 512),
+			nn.Linear(z_dim, 512),
 			nn.BatchNorm1d(512),
 			nn.ReLU(),
 			nn.Linear(512,512),
@@ -116,19 +116,24 @@ class audio_decoder(nn.Module):
 			nn.Linear(512,256),
 			nn.BatchNorm1d(256),
 			nn.ReLU(),
-			nn.Linear(256, self.in_size)
+			nn.Linear(256, audio_dim)
 			)
 
 		def forward(self, x):
 			out_lay = self.lin_lay(x)
-			return out_lays.view(-1, self.in_dim[0], self.in_dim[1])
+			return out_lays.view(-1, audio_dim)
 
 
 class VAE(nn.Module):
 
 	"""
 	Variational Autoencoder module for audio-visual cross-embedding
- 
+
+	Arguments:
+	 z_dim: dimension of latent cross-embedding
+	 encoder: encoder type
+	 decoder: decoder type
+    
     """
 
 
@@ -178,17 +183,22 @@ if __name__ == '__main__':
 	batch_size = 10
 	epoch_nb = 10
 	z_dim = 100
+	audio_dim = 128
+	visual_dim = 512
 
-	visual_dataloader = torch.utils.data.Dataloader(visual_feature, batch_size = batch_size, shuffle = False)
-	audio_dataloader = torch.utils.data.Dataloader(audio_feature, batch_size = batch_size, shuffle = False)
+	visual_dataloader = torch.utils.data.DataLoader(visual_feature, batch_size = batch_size, shuffle = False)
+	audio_dataloader = torch.utils.data.DataLoader(audio_feature, batch_size = batch_size, shuffle = False)
 
 	loss_MSE = nn.MSELoss()
 
-	cross_VAE = VAE(z_dim, visual_encoder, audio_decoder) 
+	encoder = visual_encoder(z_dim, visual_dim)
+	decoder = audio_decoder(z_dim, audio_dim) 
+	cross_VAE = VAE(z_dim, encoder, decoder) 
 	optimizer = optim.Adam(cross_VAE.parameter(), lr = 0.001)
 
 	for epoch in range(epoch_nb):
 		for i, data in enumerate(visual_dataloader,0):
+			audio_gt = audio_dataloader[i]
 			input_visual_data = data
 			input_visual_data = Variable(input_visual_data.resize_(batch_size, input_dim))
 			optimizer.zero_grad()
