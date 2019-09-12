@@ -1,6 +1,6 @@
 """
 Created by Ye ZHU, based on the code provided by Spurra
-last modified Sep 12, 2019
+last modified on Sep 12, 2019
 """
 
 import torch
@@ -128,12 +128,7 @@ class VAE(nn.Module):
 
 	"""
 	Variational Autoencoder module for audio-visual cross-embedding
-    
-	Arguments:
-        in_dim(list): Input dimension.
-        z_dim(int): Noise dimension
-        encoder(nn.Module): The encoder module. Its output dim must be 2*z_dim
-        decoder(nn.Module): The decoder module. Its output dim must be in_dim.prod()
+ 
     """
 
 
