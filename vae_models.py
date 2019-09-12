@@ -37,7 +37,6 @@ class visual_encoder(nn.Module):
 
 		## Output size
 		self.conv_out_dim = 1024 * 5 * 5
-		# Out_dim ?: 
 		self.lin_lay = nn.Linear(self.conv_out_dim, z_dim)
 		# print('lin_lay.shape:\n', self.lin_lay.shape)
 
