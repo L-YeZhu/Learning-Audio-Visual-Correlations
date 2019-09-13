@@ -193,6 +193,8 @@ if __name__ == '__main__':
 	encoder = visual_encoder(z_dim, visual_dim)
 	decoder = audio_decoder(z_dim, audio_dim) 
 	cross_VAE = VAE(z_dim, encoder, decoder) 
+	cross_VAE.cuda()
+	cross_VAE.eval()
 	optimizer = optim.Adam(cross_VAE.parameter(), lr = 0.001)
 
 	for epoch in range(epoch_nb):
