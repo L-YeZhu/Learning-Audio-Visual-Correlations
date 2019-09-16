@@ -1,5 +1,5 @@
 """
-Created by Ye ZHU, based on the code provided by Spurra
+Created by Ye ZHU
 last modified on Sep 16, 2019
 """
 
