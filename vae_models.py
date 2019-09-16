@@ -18,6 +18,28 @@ import torch.nn.functional as F
 
 
 
+class visual_encoder(nn.Module):
+	def __init__(self, input_dim, hidden_dim, latent_dim):
+		super(visual_encoder,self).__init__()
+
+		self.lin_lay = nn.Linear(input_dim, hidden_dim)
+		self.mu = nn.Linear(hidden_dim, latent_dim)
+		self.var = nn.Linear(hidden_dim, latent_dim)
+
+
+	def forward(self, x):
+		# x shape: [batch_size, input_dim]
+		hidden = F.relu(self.lin_lay(x))
+		# hidden shape: [batch_size, hidden_dim]
+
+		# latent parameters
+		mean = self.mu(hidden)
+		# mean shape: [batch_size, latent_dim]
+
+		log_var = self.var(hidden)
+		# log_var shape: [batch_size, latent_dim]
+
+		return mean, log_var
 
 # class visual_decoder(nn.Module):
 # 	def __init__(self, z_dim):
@@ -45,28 +67,7 @@ import torch.nn.functional as F
 # 		out_conv = self.conv_blocks(in_conv)
 # 		return out_conv
 
-class visual_encoder(nn.Module):
-	def __init__(self, input_dim, hidden_dim, latent_dim):
-		super(visual_encoder,self).__init__()
 
-		self.lin_lay = nn.Linear(input_dim, hidden_dim)
-		self.mu = nn.Linear(hidden_dim, latent_dim)
-		self.var = nn.Linear(hidden_dim, latent_dim)
-
-
-	def forward(self, x):
-		# x shape: [batch_size, input_dim]
-		hidden = F.relu(self.lin_lay(x))
-		# hidden shape: [batch_size, hidden_dim]
-
-		# latent parameters
-		mean = self.mu(hidden)
-		# mean shape: [batch_size, latent_dim]
-
-		log_var = self.var(hidden)
-		# log_var shape: [batch_size, latent_dim]
-
-		return mean, log_var
 
 
 class audio_decoder(nn.Module):
@@ -115,8 +116,6 @@ class VAE(nn.Module):
 	Variational Autoencoder module for audio-visual cross-embedding
     """
 
-
-
 	def __init__(self, input_dim, hidden_dim, latent_dim, output_dim):
 		super(VAE, self).__init__()
 
@@ -135,33 +134,6 @@ class VAE(nn.Module):
 
 		return generated_x, z_mu, z_var
 
-
-	# def encode(self, x):
-	# 	h_i = self.encoder(x)
-	# 	print("h_i size:",h_i.shape)
-	# 	# split to mu and logvar for reparameterize
-	# 	return h_i[:, self.z_dim:], h_i[:, :self.z_dim]
-
-	# def reparameterize(self, mu, logvar):
-	# 	# if self.training:
-	# 	std = logvar.mul(0.5).exp_()
-	# 	eps = Variable(std.data.new(std.size()).normal_())
-	# 	return eps.mu(std).add_(mu)
-	# 	# else:
-	# 	# 	return mu
-
-	# def forward(self, x):
-
-	# 	mu, logvar = self.encode(x)
-	# 	z = self.reparameterize(mu, logvar)
-
-	# 	# if no seperate decoder is specifiedm use own
-	# 	#if not vae_decoder:
-	# 	dec = self.decoder
-	# 	#else:
-	# 	#	dec = vae_decoder.decoder
-
-	# 	return dec(z), mu, logvar
 
 
 
@@ -269,11 +241,11 @@ if __name__ == '__main__':
 	#evice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 	input_dim_visual = 512 * 7 * 7
-	hidden_dim = 512
+	hidden_dim = 1024
 	latent_dim = 100
 	out_dim_audio = 128
 	batch_size = 10
-	epoch_nb = 10
+	epoch_nb = 2
 	training_size = 4000
 	testing_size = 143
 
@@ -283,9 +255,7 @@ if __name__ == '__main__':
 	# decoder = audio_decoder(latent_dim, hidden_dim, out_dim_audio) 
 	cross_VAE = VAE(input_dim_visual, hidden_dim, latent_dim, out_dim_audio) 
 	cross_VAE = cross_VAE.cuda()
-	#cross_VAE.train()
 	optimizer = optim.Adam(cross_VAE.parameters(), lr = 0.0001)
-	train_loss = 0
 
 
 	# data processing
@@ -312,5 +282,6 @@ if __name__ == '__main__':
 		test_loss /= testing_size
 
 		print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}, Test Loss: {test_loss:.2f}')
+
 
 
