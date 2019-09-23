@@ -158,14 +158,26 @@ class VAE(nn.Module):
 	Variational Autoencoder module for audio-visual cross-embedding
     """
 
-	def __init__(self, hidden_dim, latent_dim, output_dim, batch_size):
+	def __init__(self, input_dim, hidden_dim, latent_dim, output_dim):
 		super(VAE, self).__init__()
 		# self.encoder = encoder(hidden_dim, latent_dim, batch_size)
 		# self.decoder = decoder(latent_dim, hidden_dim, output_dim)
 
-		#self.encoder = visual_encoder_linear(input_dim, hidden_dim, latent_dim)
-		self.encoder = visual_encoder_conv(hidden_dim, latent_dim, batch_size)
+		self.encoder = visual_encoder_linear(input_dim, hidden_dim, latent_dim)
+		#self.encoder = visual_encoder_conv(hidden_dim, latent_dim, batch_size)
 		self.decoder = audio_decoder(latent_dim, hidden_dim, output_dim)
+
+
+	def reparametrize(self, mu, logvar):
+		if self.training:
+			std = logvar.mul(0.5).exp_()
+			eps = Variable(std.data.new(std.size()).normal_())
+			return eps.mul(std) + mu
+		else:
+			return mu
+
+
+
 
 	def forward(self, x):
 		z_mu , z_var = self.encoder(x)
@@ -200,6 +212,11 @@ def avgpooling(x):
 	m = nn.AvgPool2d(7)
 	return m(x)
 
+def pre_linear(x):
+	m = nn.Linear(512,128).cuda()
+	return F.relu(m(x))
+	#return m(x)
+
 
 
 def train_visual2audio():
@@ -220,16 +237,21 @@ def train_visual2audio():
 		visual_data_input = torch.from_numpy(visual_data_input)
 		visual_data_input = visual_data_input.float()
 		visual_data_input = visual_data_input.cuda()
-		visual_classes = torch.tensor(np.array([1]))
-		visual_classes = visual_classes.float()
-		visual_classes = visual_classes.cuda()
+		# visual_classes = torch.tensor(np.array([1]))
+		# visual_classes = visual_classes.float()
+		# visual_classes = visual_classes.cuda()
 
 		#print(visual_data_input.size())
-		#visual_data_input = avgpooling(visual_data_input)
+		visual_data_input = avgpooling(visual_data_input)
 		#print(visual_data_input.size())
-		#visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
-		visual_data_input = Variable(visual_data_input)
-		visual_classes = Variable(visual_classes)
+		# visual_data_input = pre_linear(visual_data_input)
+		# print(visual_data_input.size())
+		visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
+		#print(visual_data_input.size())
+		visual_data_input = pre_linear(visual_data_input)
+		#print(visual_data_input.size())
+		# visual_data_input = Variable(visual_data_input)
+		# visual_classes = Variable(visual_classes)
 		#print("visual_data_input size:", visual_data_input.size())
 
 		#Audio data gt
@@ -238,11 +260,11 @@ def train_visual2audio():
 		audio_data_gt = torch.from_numpy(audio_data_gt)
 		audio_data_gt = audio_data_gt.float()
 		audio_data_gt = audio_data_gt.cuda()
-		audio_classes = torch.tensor(np.array([2]))
-		audio_classes = audio_classes.float()
-		audio_classes = audio_classes.cuda()
+		# audio_classes = torch.tensor(np.array([2]))
+		# audio_classes = audio_classes.float()
+		# audio_classes = audio_classes.cuda()
 		audio_data_gt = Variable(audio_data_gt.resize_(batch_size,out_dim_audio))
-		audio_classes = Variable(audio_classes)
+		# audio_classes = Variable(audio_classes)
 		#print("audio_data_gt size:", audio_data_gt.size())
 
 		optimizer.zero_grad()
@@ -277,16 +299,18 @@ def train_audio2visual():
 		visual_data_input = torch.from_numpy(visual_data_input)
 		visual_data_input = visual_data_input.float()
 		visual_data_input = visual_data_input.cuda()
-		visual_classes = torch.tensor(np.array([1]))
-		visual_classes = visual_classes.float()
-		visual_classes = visual_classes.cuda()
+		# visual_classes = torch.tensor(np.array([1]))
+		# visual_classes = visual_classes.float()
+		# visual_classes = visual_classes.cuda()
 
 		#print(visual_data_input.size())
-		#visual_data_input = avgpooling(visual_data_input)
+		visual_data_input = avgpooling(visual_data_input)
+		#visual_data_input = pre_linear(visual_data_input)
 		#print(visual_data_input.size())
-		#visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
-		visual_data_input = Variable(visual_data_input)
-		visual_classes = Variable(visual_classes)
+		visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
+		visual_data_input = pre_linear(visual_data_input)
+		#visual_data_input = Variable(visual_data_input)
+		#visual_classes = Variable(visual_classes)
 		#print("visual_data_input size:", visual_data_input.size())
 
 		#Audio data gt
@@ -295,11 +319,11 @@ def train_audio2visual():
 		audio_data_gt = torch.from_numpy(audio_data_gt)
 		audio_data_gt = audio_data_gt.float()
 		audio_data_gt = audio_data_gt.cuda()
-		audio_classes = torch.tensor(np.array([2]))
-		audio_classes = audio_classes.float()
-		audio_classes = audio_classes.cuda()
+		# audio_classes = torch.tensor(np.array([2]))
+		# audio_classes = audio_classes.float()
+		# audio_classes = audio_classes.cuda()
 		audio_data_gt = Variable(audio_data_gt.resize_(batch_size,out_dim_audio))
-		audio_classes = Variable(audio_classes)
+		# audio_classes = Variable(audio_classes)
 		#print("audio_data_gt size:", audio_data_gt.size())
 
 		optimizer.zero_grad()
@@ -333,9 +357,10 @@ def test_visual2audio():
 			visual_data_input = torch.from_numpy(visual_data_input)
 			visual_data_input = visual_data_input.float()
 			visual_data_input = visual_data_input.cuda()
-			#visual_data_input = avgpooling(visual_data_input)
-			#visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
-			visual_data_input = Variable(visual_data_input)
+			visual_data_input = avgpooling(visual_data_input)
+			visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
+			visual_data_input = pre_linear(visual_data_input)
+			#visual_data_input = Variable(visual_data_input)
 			#print("visual_data_input size:", visual_data_input.size())
 
 			#Audio data gt
@@ -377,9 +402,10 @@ def test_audio2visual():
 			visual_data_input = torch.from_numpy(visual_data_input)
 			visual_data_input = visual_data_input.float()
 			visual_data_input = visual_data_input.cuda()
-			#visual_data_input = avgpooling(visual_data_input)
-			#visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
-			visual_data_input = Variable(visual_data_input)
+			visual_data_input = avgpooling(visual_data_input)
+			visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
+			visual_data_input = pre_linear(visual_data_input)
+			#visual_data_input = Variable(visual_data_input)
 			#print("visual_data_input size:", visual_data_input.size())
 
 			#Audio data gt
@@ -402,6 +428,94 @@ def test_audio2visual():
 	return test_loss
 
 
+def tsne():
+	#set the evaluation mode
+	cross_VAE.eval()
+	z_list = None
+	l_list = []
+
+	# 4143 segment in total
+	testing_size = 643
+	training_size = 3500
+
+	with torch.no_grad():	
+
+		for i in range(testing_size):
+			i += 3500
+			#Visual data input
+			visual_data_input = visual_data[i,:,:,:,:]
+			visual_data_input = np.transpose(visual_data_input,(0,3,1,2))
+			visual_data_input = torch.from_numpy(visual_data_input)
+			visual_data_input = visual_data_input.float()
+			visual_data_input = visual_data_input.cuda()
+			visual_data_input = avgpooling(visual_data_input)
+			visual_data_input = Variable(visual_data_input.resize_(batch_size, input_dim_visual))
+			visual_data_input = pre_linear(visual_data_input)
+			#visual_data_input = Variable(visual_data_input)
+			#print("visual_data_input size:", visual_data_input.size())
+			visual_classes = torch.tensor(np.array([0]))
+			visual_classes = visual_classes.float()
+			visual_classes = visual_classes.cuda()
+			visual_classes = Variable(visual_classes)
+
+			#Audio data gt
+			audio_data_gt = audio_data[i,:,:]
+			audio_data_gt = audio_data_gt[:,np.newaxis,:]
+			audio_data_gt = torch.from_numpy(audio_data_gt)
+			audio_data_gt = audio_data_gt.float()
+			audio_data_gt = audio_data_gt.cuda()
+			audio_data_gt = Variable(audio_data_gt.resize_(batch_size,out_dim_audio))
+			#print("audio_data_gt size:", audio_data_gt.size())
+			audio_classes = torch.tensor(np.array([1]))
+			audio_classes = audio_classes.float()
+			audio_classes = audio_classes.cuda()
+			audio_classes = Variable(audio_classes)
+
+			optimizer.zero_grad()
+			# audio_reconstruct, mu, logvar = cross_VAE(visual_data_input)
+			# z = cross_VAE.reparametrize(mu,logvar)
+			if (i < 300 + 3500):
+				audio_reconstruct, mu, logvar = cross_VAE(visual_data_input)
+				z = cross_VAE.reparametrize(mu,logvar)
+				#print(z)
+				if i == 0 + 3500:
+					z_list = z
+					l_list = visual_classes
+				else:
+					z_list = torch.cat((z_list, z), 0)
+					l_list = torch.cat((l_list, visual_classes), 0)
+			else:
+				visual_reconstruct, mu, logvar = cross_VAE(audio_data_gt)
+				z = cross_VAE.reparametrize(mu,logvar)
+				#print(z)
+				if i == 0 + 3500:
+					z_list = z
+					l_list = audio_classes
+				else:
+					z_list = torch.cat((z_list, z), 0)
+					l_list = torch.cat((l_list, audio_classes), 0)
+
+
+	z_list = z_list.data.cpu().numpy()[:600]
+	l_list = l_list.cpu().numpy()[:600]
+	#print("l_list:",l_list)
+	X_reduced = TSNE(n_components=2, random_state=0).fit_transform(z_list)
+	point_count = 0
+	for i in range(600):
+		if (l_list[i] == 0):
+			plt.scatter(X_reduced[i,0], X_reduced[i,1], c = 'red')
+			point_count += 1
+		elif (l_list[i] == 1):
+			plt.scatter(X_reduced[i,0], X_reduced[i,1], c = 'green')
+			point_count +=1
+
+	print("point_count:", point_count)
+	#plt.legend()
+	plt.show()
+
+
+
+
 if __name__ == '__main__':
 
 	#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -419,7 +533,7 @@ if __name__ == '__main__':
 	## Cross VAE Model
 	# encoder = visual_encoder(input_dim_visual, hidden_dim, latent_dim)
 	# decoder = audio_decoder(latent_dim, hidden_dim, out_dim_audio) 
-	cross_VAE = VAE(hidden_dim, latent_dim, out_dim_audio, batch_size) 
+	cross_VAE = VAE(out_dim_audio, hidden_dim, latent_dim, out_dim_audio) 
 	cross_VAE = cross_VAE.cuda()
 	#optimizer = optim.Adam(cross_VAE.parameters(), lr = 0.0001)
 
@@ -446,9 +560,9 @@ if __name__ == '__main__':
 		# else:
 		# 	optimizer = optim.Adam(cross_VAE.parameters(), lr = 0.00001)
 
-		optimizer = optim.Adam(cross_VAE.parameters(), lr = 0.0001)
+		optimizer = optim.Adam(cross_VAE.parameters(), lr = 0.00001)
 
-		if epoch < 10 :
+		if epoch %2 == 0 :
 			print(f'Cross training: from visual to audio:')
 
 			train_loss = 0
@@ -470,7 +584,7 @@ if __name__ == '__main__':
 
 			train_loss = 0
 			# Cross training: Audio to visual
-			train_loss = train_visual2audio()
+			train_loss = train_audio2visual()
 			test_loss1 = test_visual2audio()
 			test_loss2 = test_audio2visual()
 
@@ -484,9 +598,7 @@ if __name__ == '__main__':
 
 
 	## Visulization
-	# model.eval()
-	# z_list = None
-	# l_list = []
+	tsne()
 
 
 
