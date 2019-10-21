@@ -21,21 +21,21 @@ class visual_encoder(nn.Module):
 		super(visual_encoder,self).__init__()
 
 		self.lin_lays = nn.Sequential(
-			nn.Linear(512, 300),
+			nn.Linear(512, 512),
 			#nn.BatchNorm1d(300),
 			nn.ReLU(),
-			#nn.Linear(512, 300),
+			nn.Linear(512, 512),
 			# #nn.BatchNorm1d(512),
-			#nn.ReLU(),
-			# nn.Linear(512, 512),
+			nn.ReLU(),
+			nn.Linear(512, 128),
 			# #nn.BatchNorm1d(512),
-			# nn.ReLU(),
-			# nn.Linear(512, 512),
+			nn.ReLU(),
+			nn.Linear(128, 128),
 			# nn.BatchNorm1d(512),
 			# nn.ReLU(),
         )
-		self.mu = nn.Linear(300, latent_dim)
-		self.var = nn.Linear(300, latent_dim)
+		self.mu = nn.Linear(128, latent_dim)
+		self.var = nn.Linear(128, latent_dim)
 
 
 	def forward(self, x):
@@ -55,10 +55,10 @@ class visual_decoder(nn.Module):
 		super(visual_decoder,self).__init__()
 
 		self.lin_lays = nn.Sequential(
-			nn.Linear(latent_dim, 300),
+			nn.Linear(latent_dim, 128),
 			#nn.BatchNorm1d(300),
 			nn.ReLU(),
-			nn.Linear(300, 512),
+			nn.Linear(128, 512),
 			#nn.BatchNorm1d(512),
 			#nn.ReLU(),
 			#nn.Linear(512, 512),
@@ -135,6 +135,33 @@ class audio_decoder(nn.Module):
 		return generated_x
 
 
+
+class general_decoder(nn.Module):
+	def __init__(self, latent_dim):
+		super(general_decoder, self).__init__()
+
+		self.lin_lays = nn.Sequential(
+			nn.Linear(latent_dim, 512),
+			nn.ReLU(),
+			nn.Linear(512, 512),
+			nn.ReLU(),
+			nn.Linear(512, 512),
+			nn.ReLU(),
+			nn.Linear(512, 640),
+			nn.ReLU(),
+			nn.Linear(640, 640),
+			nn.ReLU(),
+			nn.Linear(640, 640),
+
+			)
+		
+	def forward(self, x):
+		generated_x = self.lin_lays(x)
+		return generated_x
+
+
+
+
 class VAE(nn.Module):
 	"""Variational Autoencoder module that allows cross-embedding
 
@@ -173,3 +200,43 @@ class VAE(nn.Module):
 
 		return dec(z), mu, logvar
 
+
+
+class VAE_varenc(nn.Module):
+	"""Variational Autoencoder module that allows cross-embedding
+
+	Arguments:
+	in_dim(list): Input dimension.
+	z_dim(int): Noise dimension
+	encoder(nn.Module): The encoder module. Its output dim must be 2*z_dim
+	decoder(nn.Module): The decoder module. Its output dim must be in_dim.prod()
+	"""
+	def __init__(self, z_dim, encoder, decoder):
+		super(VAE, self).__init__()
+		self.z_dim = z_dim
+		self.encoder = encoder
+		self.decoder = decoder
+
+
+	def reparameterize(self, mu, logvar):
+		if self.training:
+		#### used only for training process ####
+			std = torch.exp(logvar / 2)
+			eps = Variable(std.data.new(std.size()).normal_())
+			z = eps.mul(std).add_(mu)
+			return z
+		else:
+			return mu
+		#### otherwise, reparameterize returns to mu ####
+
+	def forward(self, x, vae_encoder=None):
+		if not vae_encoder:
+			enc = self.encoder
+		else:
+			enc = vae_encoder.encoder
+
+		mu, logvar = enc(x)
+		z = self.reparameterize(mu, logvar)
+		dec = self.decoder()
+
+		return dec(z), mu, logvar
