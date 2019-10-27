@@ -76,6 +76,21 @@ for i in range(len(test_l)):
         y_test[10 * i + j] = closs_labels[id, j]
 
 
+def norm(x):
+	m,n = x.shape
+	#print(m,n)
+	for i in range(m):
+		x[i,:] /= np.max(np.abs(x[i,:]))
+	return x
+
+# x_video_train = norm(x_video_train)
+# x_audio_train = norm(x_audio_train)
+# x_video_val = norm(x_video_val)
+# x_audio_val = norm(x_audio_val)
+# x_video_test = norm(x_video_test)
+# x_audio_test = norm(x_audio_test)
+
+
 print("data loading finished!")
 
 
@@ -196,9 +211,19 @@ def avgpooling(x):
 	return m(x)
 
 
+def pre_linear_audio(x):
+	m = nn.Linear(128,2).cuda()
+	return m(x)
+
+def pre_linear_video(x):
+	m = nn.Linear(512,2).cuda()
+	#return F.relu(m(x))
+	return m(x)
+
 def pre_linear(x):
-	m = nn.Linear(512,128).cuda()
-	return F.relu(m(x))
+	m = nn.Linear(100,2).cuda()
+	#return F.relu(m(x))
+	return m(x)
 
 
 
@@ -461,12 +486,30 @@ def caluculate_loss_generaldec(x_visual, x_audio, x_reconstruct, mu, logvar, epo
 	#bs = x_reconstruct.size(0)
 	mse_loss = loss_MSE(x_input, x_reconstruct)
 	kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-	if epoch < 7:
-		final_loss = mse_loss + kl_loss*0.1
+	_ , mu1, logvar1 = vae_audio(x_audio)
+	z1 = vae_audio.reparameterize(mu1, logvar1)
+	_, mu2, logvar2 = vae_video(x_visual)
+	z2 = vae_video.reparameterize(mu2, logvar2)
+	#z1 = pre_linear(z1)
+	#z2 = pre_linear(z2)
+	latent_loss = euclidean_dis(z1,z2)
+	if epoch < 10:
+		final_loss = mse_loss + kl_loss*0.1 + latent_loss*1
 	else:
-		final_loss = mse_loss + kl_loss*0.1
+		final_loss = mse_loss + kl_loss*0.01 + latent_loss*1
 	#bce_loss = F.binary_cross_entropy(x_reconstruct, x_input, size_average = False)
+	#print(lambda1, lambda2)
 	return final_loss, kl_loss, mse_loss
+
+
+
+def norm_video(x):
+	m = nn.BatchNorm1d(512).cuda()
+	return m(x)
+
+def norm_audio(x):
+	m = nn.BatchNorm1d(128).cuda()
+	return m(x)
 
 
 def train_video_generaldec(epoch):
@@ -478,6 +521,7 @@ def train_video_generaldec(epoch):
 	training_size = len(train_l)
 	#optimizer_video.zero_grad()
 
+
 	for video_id in range(training_size):
 		s = video_id * 10
 		e = s + 10
@@ -485,12 +529,14 @@ def train_video_generaldec(epoch):
 		visual_data_input = torch.from_numpy(visual_data_input)
 		visual_data_input = visual_data_input.float()
 		visual_data_input = visual_data_input.cuda()
+		#visual_data_input = norm_video(visual_data_input)
 		visual_data_input = Variable(visual_data_input)
 
 		audio_data_gt = x_audio_train[s:e,:]
 		audio_data_gt = torch.from_numpy(audio_data_gt)
 		audio_data_gt = audio_data_gt.float()
 		audio_data_gt = audio_data_gt.cuda()
+		#audio_data_gt = norm_audio(audio_data_gt)
 		audio_data_gt = Variable(audio_data_gt)
 
 		optimizer_video.zero_grad()
@@ -528,12 +574,14 @@ def train_audio_generaldec(epoch):
 		visual_data_input = torch.from_numpy(visual_data_input)
 		visual_data_input = visual_data_input.float()
 		visual_data_input = visual_data_input.cuda()
+		#visual_data_input = norm_video(visual_data_input)
 		visual_data_input = Variable(visual_data_input)
 
 		audio_data_gt = x_audio_train[s:e,:]
 		audio_data_gt = torch.from_numpy(audio_data_gt)
 		audio_data_gt = audio_data_gt.float()
 		audio_data_gt = audio_data_gt.cuda()
+		#audio_data_gt = norm_audio(audio_data_gt)
 		audio_data_gt = Variable(audio_data_gt)
 
 		optimizer_audio.zero_grad()
@@ -550,6 +598,66 @@ def train_audio_generaldec(epoch):
 		#optimizer_video.step()
 
 	return train_loss, kl_loss, mse_loss
+
+
+
+def train_generaldec(epoch):
+	vae_audio.train()
+	vae_video.train()
+	train_loss = 0
+	kl_loss = 0
+	mse_loss = 0
+
+	training_size = len(train_l)
+
+	for video_id in range(training_size):
+		s = video_id * 10
+		e = s + 10
+
+		visual_data_input = x_video_train[s:e,:]
+		visual_data_input = torch.from_numpy(visual_data_input)
+		visual_data_input = visual_data_input.float()
+		visual_data_input = visual_data_input.cuda()
+		#visual_data_input = norm_video(visual_data_input)
+		visual_data_input = Variable(visual_data_input)
+
+		audio_data_gt = x_audio_train[s:e,:]
+		audio_data_gt = torch.from_numpy(audio_data_gt)
+		audio_data_gt = audio_data_gt.float()
+		audio_data_gt = audio_data_gt.cuda()
+		#audio_data_gt = norm_audio(audio_data_gt)
+		audio_data_gt = Variable(audio_data_gt)
+
+		optimizer_audio.zero_grad()
+		optimizer_video.zero_grad()
+
+		if epoch == 0:
+			x_reconstruct_from_v, mu1, logvar1 = vae_video(visual_data_input)
+		else:
+			x_reconstruct_from_v, mu1, logvar1 = vae_video(visual_data_input,vae_audio)
+
+		loss1, kl1, mse1 = caluculate_loss_generaldec(visual_data_input, audio_data_gt, x_reconstruct_from_v, mu1, logvar1, epoch)
+
+		x_reconstruct_from_a, mu2, logvar2 = vae_audio(audio_data_gt, vae_video)
+		loss2, kl2, mse2 = caluculate_loss_generaldec(visual_data_input, audio_data_gt, x_reconstruct_from_a, mu2, logvar2, epoch)
+
+		loss = loss1 + loss2
+		kl = kl1 + kl2
+		mse = mse1 + mse2
+
+		loss.backward()
+		train_loss += loss.item()
+		kl_loss += kl.item()
+		mse_loss += mse.item()
+
+		optimizer_video.step()
+		optimizer_audio.step()
+
+	return train_loss, kl_loss, mse_loss
+
+
+
+
 
 
 def val_video_generaldec():
@@ -719,6 +827,7 @@ def tsne():
 			visual_data_input = torch.from_numpy(visual_data_input)
 			visual_data_input = visual_data_input.float()
 			visual_data_input = visual_data_input.cuda()
+			#visual_data_input = norm_video(visual_data_input)
 			visual_data_input = Variable(visual_data_input)
 			visual_classes = torch.tensor(np.array([1]))
 			visual_classes = visual_classes.float()
@@ -731,6 +840,7 @@ def tsne():
 			audio_data_gt = torch.from_numpy(audio_data_gt)
 			audio_data_gt = audio_data_gt.float()
 			audio_data_gt = audio_data_gt.cuda()
+			#audio_data_gt = norm_audio(audio_data_gt)
 			audio_data_gt = Variable(audio_data_gt)
 			audio_classes = torch.tensor(np.array([0]))
 			audio_classes = audio_classes.float()
@@ -851,18 +961,22 @@ if __name__ == '__main__':
 	latent_dim = 100
 	#out_dim_audio = 128
 	batch_size = 10
-	epoch_nb = 10
+	epoch_nb = 20
 	training_size = len(train_l)
 	testing_size = len(test_l)
 	val_size = len(val_l)
 
-
+	# print(x_video_train.shape)
+	# print(np.max(x_video_train))
+	# print(np.max(x_audio_train))
+	# print(x_video_train[0:10, :])
+	# print(x_audio_train[0:10, :])
 
 	## Cross VAE Model
 	audio_encode = audio_encoder(latent_dim)
-	audio_decode = audio_decoder(latent_dim)
+	#audio_decode = audio_decoder(latent_dim)
 	video_encode = visual_encoder(latent_dim)
-	video_decode = visual_decoder(latent_dim)
+	#video_decode = visual_decoder(latent_dim)
 	general_decode = general_decoder(latent_dim)
 	#vae_audio = VAE_varenc(latent_dim, audio_encode, general_decode)
 	#vae_video = VAE_varenc(latent_dim, video_encode, general_decode)
@@ -905,7 +1019,7 @@ if __name__ == '__main__':
 
 		print(f'Training with general decoder --- video to all:')
 		train_loss = 0
-		train_loss, kl_loss, mse_loss = train_video_generaldec(epoch)
+		train_loss, kl_loss, mse_loss = train_generaldec(epoch)
 		train_loss /= training_size
 		kl_loss /= training_size
 		mse_loss /= training_size
@@ -914,36 +1028,43 @@ if __name__ == '__main__':
 
 	#else:
 
-		print(f'Training with general decoder --- audio to all:')
-		train_loss = 0
-		train_loss, kl_loss, mse_loss = train_audio_generaldec(epoch)
-		train_loss /= training_size
-		kl_loss /= training_size
-		mse_loss /= training_size
-		print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
-		print("KL and MSE loss:", kl_loss, mse_loss) 		
+		# print(f'Training with general decoder --- audio to all:')
+		# train_loss = 0
+		# train_loss, kl_loss, mse_loss = train_audio_generaldec(epoch)
+		# train_loss /= training_size
+		# kl_loss /= training_size
+		# mse_loss /= training_size
+		# print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
+		# print("KL and MSE loss:", kl_loss, mse_loss) 		
 
-	tsne()
-
-
-	print(f'Val with general decoder --- audio to all:')
-	val_loss = 0
-	val_loss, kl_loss, mse_loss = val_audio_generaldec()
-	val_loss /= val_size
-	kl_loss /= val_size
-	mse_loss /= val_size
-	print(f'Val Loss for audio input: {train_loss:.2f}')
-	print("KL and MSE loss:", kl_loss, mse_loss) 	
+		# if (epoch == 9):
+		# 	torch.save(vae_audio.state_dict(), 'vae_audio_epoch1_v2a.pkl')
+		# 	torch.save(vae_video.state_dict(), 'vae_video_epoch1_v2a.pkl')
 
 
-	print(f'Val with general decoder --- video to all:')
-	val_loss = 0
-	val_loss, kl_loss, mse_loss = val_video_generaldec()
-	val_loss /= val_size
-	kl_loss /= val_size
-	mse_loss /= val_size
-	print(f'Val Loss for video input: {train_loss:.2f}')
-	print("KL and MSE loss:", kl_loss, mse_loss) 
+	torch.save(vae_audio.state_dict(), 'vae_audio_baseline4_mergeloss.pkl')
+	torch.save(vae_video.state_dict(), 'vae_video_baseline4_mergeloss.pkl')
+	#tsne()
+
+
+	# print(f'Val with general decoder --- audio to all:')
+	# val_loss = 0
+	# val_loss, kl_loss, mse_loss = val_audio_generaldec()
+	# val_loss /= val_size
+	# kl_loss /= val_size
+	# mse_loss /= val_size
+	# print(f'Val Loss for audio input: {train_loss:.2f}')
+	# print("KL and MSE loss:", kl_loss, mse_loss) 	
+
+
+	# print(f'Val with general decoder --- video to all:')
+	# val_loss = 0
+	# val_loss, kl_loss, mse_loss = val_video_generaldec()
+	# val_loss /= val_size
+	# kl_loss /= val_size
+	# mse_loss /= val_size
+	# print(f'Val Loss for video input: {train_loss:.2f}')
+	# print("KL and MSE loss:", kl_loss, mse_loss) 
 
 
 
@@ -1028,9 +1149,9 @@ if __name__ == '__main__':
 		# print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
 
 	# ## Visulization
-	# torch.save(vae_audio.state_dict(), 'vae_audio_cross_latentloss.pkl')
-	# torch.save(vae_video.state_dict(), 'vae_video_cross_latentloss.pkl')
-	#tsne()
+	# torch.save(vae_audio.state_dict(), 'vae_audio_cross_norm.pkl')
+	# torch.save(vae_video.state_dict(), 'vae_video_cross_norm.pkl')
+	# #tsne()
 	#cross_tsne()
 
 

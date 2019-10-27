@@ -16,11 +16,33 @@ import matplotlib.pyplot as plt
 
 ################ VAE model #################
 
+class classifier(nn.Module):
+	def __init__(self, latent_dim):
+		super(classifier, self).__init__()
+
+		self.lin_lays = nn.Sequential(
+			nn.Linear(latent_dim*2, latent_dim*2),
+			nn.ReLU(),
+			nn.Linear(latent_dim*2, latent_dim),
+			nn.ReLU(),
+			nn.Linear(latent_dim, 1),
+			)
+		self.sig = nn.Sigmoid()
+
+	def forward(self, x):
+		out = self.lin_lays(x)
+		out = self.sig(out)
+		return out
+
+
+
+
 class visual_encoder(nn.Module):
 	def __init__(self, latent_dim):
 		super(visual_encoder,self).__init__()
 
 		self.lin_lays = nn.Sequential(
+			#nn.BatchNorm1d(512),
 			nn.Linear(512, 512),
 			#nn.BatchNorm1d(300),
 			nn.ReLU(),
@@ -50,35 +72,36 @@ class visual_encoder(nn.Module):
 		return mean, log_var
 
 
-class visual_decoder(nn.Module):
-	def __init__(self, latent_dim):
-		super(visual_decoder,self).__init__()
+# class visual_decoder(nn.Module):
+# 	def __init__(self, latent_dim):
+# 		super(visual_decoder,self).__init__()
 
-		self.lin_lays = nn.Sequential(
-			nn.Linear(latent_dim, 128),
-			#nn.BatchNorm1d(300),
-			nn.ReLU(),
-			nn.Linear(128, 512),
-			#nn.BatchNorm1d(512),
-			#nn.ReLU(),
-			#nn.Linear(512, 512),
-			# #nn.BatchNorm1d(512),
-			# nn.ReLU(),
-			# nn.Linear(512, 512),
-			# #nn.BatchNorm1d(512),
-			# nn.ReLU(),
-			# nn.Linear(512, 512),
-			# nn.Sigmoid(),
-		)
+# 		self.lin_lays = nn.Sequential(
+# 			#nn.BatchNorm1d(128),
+# 			nn.Linear(latent_dim, 128),
+# 			#nn.BatchNorm1d(300),
+# 			nn.ReLU(),
+# 			nn.Linear(128, 512),
+# 			#nn.BatchNorm1d(512),
+# 			#nn.ReLU(),
+# 			#nn.Linear(512, 512),
+# 			# #nn.BatchNorm1d(512),
+# 			# nn.ReLU(),
+# 			# nn.Linear(512, 512),
+# 			# #nn.BatchNorm1d(512),
+# 			# nn.ReLU(),
+# 			# nn.Linear(512, 512),
+# 			# nn.Sigmoid(),
+# 		)
 
-		# self.latent_to_hidden = nn.Linear(latent_dim, hidden_dim)
-		# self.hidden_to_out = nn.Linear(hidden_dim, output_dim)
-		# self.norm = nn.BatchNorm1d(128)
+# 		# self.latent_to_hidden = nn.Linear(latent_dim, hidden_dim)
+# 		# self.hidden_to_out = nn.Linear(hidden_dim, output_dim)
+# 		# self.norm = nn.BatchNorm1d(128)
 
-	def forward(self, x):
-		#x = F.relu(self.latent_to_hidden(x))
-		generated_x = self.lin_lays(x)
-		return generated_x
+# 	def forward(self, x):
+# 		#x = F.relu(self.latent_to_hidden(x))
+# 		generated_x = self.lin_lays(x)
+# 		return generated_x
 
 
 
@@ -87,10 +110,12 @@ class audio_encoder(nn.Module):
 		super(audio_encoder,self).__init__()
 
 		self.lin_lays = nn.Sequential(
+			#nn.BatchNorm1d(128),
 			nn.Linear(128, 128),
 			nn.ReLU(),
 			nn.Linear(128, 128),
-			nn.ReLU(),
+			#nn.ReLU(),
+			#nn.Sigmoid(),
         )
 
 		self.mu = nn.Linear(128, latent_dim)
@@ -112,27 +137,27 @@ class audio_encoder(nn.Module):
 		return mean, log_var
 
 
-class audio_decoder(nn.Module):
-	def __init__(self, latent_dim):
-		super(audio_decoder,self).__init__()
+# class audio_decoder(nn.Module):
+# 	def __init__(self, latent_dim):
+# 		super(audio_decoder,self).__init__()
 
-		self.lin_lays = nn.Sequential(
-			nn.Linear(latent_dim, 128),
-			# nn.BatchNorm1d(512),
-			nn.ReLU(),
-			nn.Linear(128, 128),
-			nn.ReLU(),
-			nn.Linear(128, 128),
-		)
+# 		self.lin_lays = nn.Sequential(
+# 			nn.Linear(latent_dim, 128),
+# 			# nn.BatchNorm1d(512),
+# 			nn.ReLU(),
+# 			nn.Linear(128, 128),
+# 			nn.ReLU(),
+# 			nn.Linear(128, 128),
+# 		)
 
-		# self.latent_to_hidden = nn.Linear(latent_dim, hidden_dim)
-		# self.hidden_to_out = nn.Linear(hidden_dim, output_dim)
-		# self.norm = nn.BatchNorm1d(128)
+# 		# self.latent_to_hidden = nn.Linear(latent_dim, hidden_dim)
+# 		# self.hidden_to_out = nn.Linear(hidden_dim, output_dim)
+# 		# self.norm = nn.BatchNorm1d(128)
 
-	def forward(self, x):
-		#x = F.relu(self.latent_to_hidden(x))
-		generated_x = self.lin_lays(x)
-		return generated_x
+# 	def forward(self, x):
+# 		#x = F.relu(self.latent_to_hidden(x))
+# 		generated_x = self.lin_lays(x)
+# 		return generated_x
 
 
 
@@ -152,7 +177,7 @@ class general_decoder(nn.Module):
 			nn.Linear(640, 640),
 			nn.ReLU(),
 			nn.Linear(640, 640),
-
+			#nn.Sigmoid(),
 			)
 		
 	def forward(self, x):
