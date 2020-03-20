@@ -153,7 +153,7 @@ def test_cmm_a2v(video_feature, audio_feature):
 		loss4 = loss_MSE(reconstructed_video, pair)
 		#distance_euc = loss2.item()
 		#print(loss1.item(), loss2.item(), loss3.item(), loss4.item())
-	return loss1.item()*0 + loss2.item()*1 + loss3.item()*0 + loss4.item()*0
+	return loss1.item()*0.5 + loss2.item()*0.5 + loss3.item()*0 + loss4.item()*0
 
 
 
@@ -184,7 +184,7 @@ def test_cmm_v2a(video_feature, audio_feature):
 		#loss3 = loss_MSE(reconstructed_audio, reconstructed_video)
 		#distance_euc = loss2.item()
 		#print(loss1.item(), loss2.item())
-	return  loss1.item()*0 + loss2.item()*1 + loss3.item()*0 + loss4.item()*0
+	return  loss1.item()*0.5 + loss2.item()*0.5 + loss3.item()*0 + loss4.item()*0
 
 
 
@@ -204,8 +204,10 @@ if __name__ == '__main__':
 	vae_audio.cuda()
 	vae_video.cuda()
 
-	vae_audio.load_state_dict(torch.load('msvae_a_final1.pkl'))
-	vae_video.load_state_dict(torch.load('msvae_v_final1.pkl'))
+	vae_audio.load_state_dict(torch.load('msvae_a.pkl'))
+	vae_video.load_state_dict(torch.load('msvae_v.pkl'))
+	# vae_audio.load_state_dict(torch.load('vae_audio_baseline1.pkl'))
+	# vae_video.load_state_dict(torch.load('vae_video_baseline1.pkl'))
 
 
 	print("Model load completed!")

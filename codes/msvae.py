@@ -108,9 +108,9 @@ def caluculate_loss_generaldec(x_visual, x_audio, x_reconstruct, mu, logvar, epo
 	z2 = vae_video.reparameterize(mu2, logvar2)
 	latent_loss = euclidean_dis(z1,z2)
 	if epoch < 10:
-		final_loss = mse_loss + kl_loss*0.1 + latent_loss*1
+		final_loss = mse_loss + kl_loss*0.1 + latent_loss
 	else:
-		final_loss = mse_loss + kl_loss*0.01 + latent_loss*1
+		final_loss = mse_loss + kl_loss*0.01 + latent_loss
 	return final_loss, kl_loss, mse_loss, latent_loss
 
 def train_video_generaldec(epoch):
@@ -242,7 +242,6 @@ def train_generaldec(epoch):
 		visual_data_input = visual_data_input.cuda()
 		visual_data_input = Variable(visual_data_input)
 
-		#audio_data_gt = x_audio_train[s:e,:]
 		audio_data_gt = torch.from_numpy(audio_data_gt)
 		audio_data_gt = audio_data_gt.float()
 		audio_data_gt = audio_data_gt.cuda()
@@ -302,11 +301,19 @@ if __name__ == '__main__':
 	vae_audio.cuda()
 	vae_video.cuda()
 
-	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.0001)
-	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.0001)
+	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.00001)
+	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.00001)
 
 
 	for epoch in range(epoch_nb):
+
+
+		# if (epoch < 5):
+		# 	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.0001)
+		# 	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.0001)
+		# else:
+		# 	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.00001)
+		# 	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.00001)
 
 		train_loss = 0
 		train_loss, kl_loss, mse_loss, latent_loss = train_generaldec(epoch)

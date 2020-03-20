@@ -15,7 +15,6 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import random
 from model_components import *
-from retrieval_components import *
 
 
 ####### Dataloader #########
@@ -366,8 +365,10 @@ if __name__ == '__main__':
 	vae_audio.cuda()
 	vae_video.cuda()
 
-	vae_audio.load_state_dict(torch.load('msvae_audio_nobg1.pkl'))
-	vae_video.load_state_dict(torch.load('msvae_video_nobg1.pkl'))
+	# vae_audio.load_state_dict(torch.load('msvae_a.pkl'))
+	# vae_video.load_state_dict(torch.load('msvae_v.pkl'))
+	vae_audio.load_state_dict(torch.load('vae_audio_baseline1.pkl'))
+	vae_video.load_state_dict(torch.load('vae_video_baseline1.pkl'))
 
 
 	vv_mrr, va_mrr, av_mrr, aa_mrr = msvae_mrr()
