@@ -1,2 +1,2 @@
-# Cross-modal-VAE
-Cross-modal VAE for audio-visual processing (in progress for personal use).
+# Learning Audio-Visual Correlations from Variational Cross-Modal Generations
+
