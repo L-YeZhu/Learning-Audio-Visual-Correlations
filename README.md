@@ -2,10 +2,10 @@
 
 
 
-## We implement the project using
-### Python 3.6
-### Pytorch 
+### 1. We implement the project using
+Python 3.6
+Pytorch 
 
-## Firstly, please download the audio and visual features from , and place the data files in the data folder. 
+### 2. Please download the audio and visual features from , and place the data files in the data folder. 
 
-## The trained models can be downloaded here.
+### The trained models can be downloaded here.
