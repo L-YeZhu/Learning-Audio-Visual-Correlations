@@ -216,6 +216,69 @@ def train_audio_generaldec(epoch):
 
 
 
+def train_generaldec(epoch):
+	vae_audio.train()
+	vae_video.train()
+	train_loss = 0
+	kl_loss = 0
+	mse_loss = 0
+	latent_loss = 0
+	training_size = len(train_l)
+
+	for video_id in range(training_size):
+		s = video_id * 10
+		e = s + 10
+
+		visual_data_input = x_video_train[s:e,:]
+		audio_data_gt = x_audio_train[s:e,:]
+		event_label = y_train[s:e]
+		bg_index = np.where(event_label == 0)[0]
+		visual_data_input = np.delete(visual_data_input, bg_index, axis=0)
+		audio_data_gt = np.delete(audio_data_gt, bg_index, axis=0)
+
+
+		visual_data_input = torch.from_numpy(visual_data_input)
+		visual_data_input = visual_data_input.float()
+		visual_data_input = visual_data_input.cuda()
+		visual_data_input = Variable(visual_data_input)
+
+		#audio_data_gt = x_audio_train[s:e,:]
+		audio_data_gt = torch.from_numpy(audio_data_gt)
+		audio_data_gt = audio_data_gt.float()
+		audio_data_gt = audio_data_gt.cuda()
+		audio_data_gt = Variable(audio_data_gt)
+
+		optimizer_audio.zero_grad()
+		optimizer_video.zero_grad()
+
+		if epoch == 0:
+			x_reconstruct_from_v, mu1, logvar1 = vae_video(visual_data_input)
+		else:
+			x_reconstruct_from_v, mu1, logvar1 = vae_video(visual_data_input,vae_audio)
+
+		loss1, kl1, mse1, latent1 = caluculate_loss_generaldec(visual_data_input, audio_data_gt, x_reconstruct_from_v, mu1, logvar1, epoch)
+
+		x_reconstruct_from_a, mu2, logvar2 = vae_audio(audio_data_gt, vae_video)
+		loss2, kl2, mse2, latent2 = caluculate_loss_generaldec(visual_data_input, audio_data_gt, x_reconstruct_from_a, mu2, logvar2, epoch)
+
+		loss = loss1 + loss2
+		kl = kl1 + kl2
+		mse = mse1 + mse2
+		latent = latent1 + latent2
+
+		loss.backward()
+		train_loss += loss.item()
+		kl_loss += kl.item()
+		mse_loss += mse.item()
+		latent_loss += mse.item()
+
+		optimizer_video.step()
+		optimizer_audio.step()
+
+	return train_loss, kl_loss, mse_loss, latent_loss
+
+
+
 if __name__ == '__main__':
 
 	#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -245,35 +308,35 @@ if __name__ == '__main__':
 
 	for epoch in range(epoch_nb):
 
-		# if (epoch < 5):
-		# 	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.0001)
-		# 	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.0001)
-		# else:
-		# 	optimizer_audio = optim.Adam(vae_audio.parameters(), lr = 0.00001)
-		# 	optimizer_video = optim.Adam(vae_video.parameters(), lr = 0.00001)
-
-		#if epoch > 10:
-
-		print(f'Training with general decoder --- video to all:')
 		train_loss = 0
-		train_loss, kl_loss, mse_loss, latent_loss = train_video_generaldec(epoch)
+		train_loss, kl_loss, mse_loss, latent_loss = train_generaldec(epoch)
 		train_loss /= training_size
 		kl_loss /= training_size
 		mse_loss /= training_size
 		latent_loss /= training_size
 		print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
-		print("KL and MSE loss, LATENT:", kl_loss, mse_loss, latent_loss)
+		print("KL and MSE loss, LATENT:", kl_loss, mse_loss, latent_loss) 
+
+		# print(f'Training with general decoder --- video to all:')
+		# train_loss = 0
+		# train_loss, kl_loss, mse_loss, latent_loss = train_video_generaldec(epoch)
+		# train_loss /= training_size
+		# kl_loss /= training_size
+		# mse_loss /= training_size
+		# latent_loss /= training_size
+		# print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
+		# print("KL and MSE loss, LATENT:", kl_loss, mse_loss, latent_loss)
 
 
-		print(f'Training with general decoder --- audio to all:')
-		train_loss = 0
-		train_loss, kl_loss, mse_loss, latent_loss = train_audio_generaldec(epoch)
-		train_loss /= training_size
-		kl_loss /= training_size
-		mse_loss /= training_size
-		latent_loss /= training_size
-		print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
-		print("KL and MSE loss, LATENT:", kl_loss, mse_loss, latent_loss) 	
+		# print(f'Training with general decoder --- audio to all:')
+		# train_loss = 0
+		# train_loss, kl_loss, mse_loss, latent_loss = train_audio_generaldec(epoch)
+		# train_loss /= training_size
+		# kl_loss /= training_size
+		# mse_loss /= training_size
+		# latent_loss /= training_size
+		# print(f'Epoch {epoch}, Train Loss: {train_loss:.2f}')
+		# print("KL and MSE loss, LATENT:", kl_loss, mse_loss, latent_loss) 	
 
 
 
