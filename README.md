@@ -7,7 +7,7 @@ Python 3.6 <br />
 Pytorch 1.2
 
 #### 2. Training and pre-trained models
-Please download the audio and visual features from [here](https://github.com/YapengTian/AVE-ECCV18), and place the data files in the data folder. Note that we use the features for CML task for experiments.
+Please download the audio and visual features from [here](https://github.com/YapengTian/AVE-ECCV18), and place the data files in the data folder. Note that we use the features for CML task for experiments. <br />
 To train the model, run the <code>msvae.py</code>. <br />
 For the cross-modal localization task, run the <code>cml.py</code>. <br />
 For the cross-modal retrieval task, run the <code>retrieval.py</code>. <br />
