@@ -11,7 +11,6 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import h5py
 import torch.nn.functional as F
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import random
 from model_components import *
@@ -66,7 +65,7 @@ for i in range(len(train_l)):
         # class_train[10*i + j, :] = labels[id, j, :]
         class_temp = np.array(np.nonzero(labels[id,j,:]))
         class_train[10*i + j] = class_temp[0,0] 
-        # class_train = 
+
 
 for i in range(len(val_l)):
     id = val_l[i]
@@ -140,7 +139,6 @@ def calculate_score_va(video_feature, audio_feature):
 	pair = torch.cat((video_feature, audio_feature),1)
 	loss_MSE = nn.MSELoss()
 	with torch.no_grad():
-	#distance= 0
 		reconstructed_audio, mu1, logvar1 = vae_video(video_feature)
 		reconstructed_video, mu2, logvar2 = vae_audio(audio_feature)
 		loss1 = euclidean_dis(mu1,mu2)
@@ -156,7 +154,6 @@ def calculate_score_vv(video_feature1, video_feature2):
 	loss_MSE = nn.MSELoss()
 	#pair = torch.cat((video_feature, audio_feature),1)
 	with torch.no_grad():
-	#distance= 0
 		reconstructed_v1, mu1, logvar1 = vae_video(video_feature1)
 		reconstructed_v2, mu2, logvar2 = vae_video(video_feature2)
 		loss1 = euclidean_dis(mu1,mu2)
@@ -269,13 +266,11 @@ def msvae_mrr():
 				rr_vv += 1/(j+1)
 				print("found first index for vv:",j+1)
 				break
-		print("top5 retrieved for vv:", v_label, retrieval_test_label[score_index_v[0:5]], score_index_v[0:5])
 		for j in range(testing_size):
 			if v_label == retrieval_test_label[score_index_a[j]]:
 				rr_va += 1/(j+1)
 				print("found first index for va:",j+1)
 				break
-		print("top5 retrieved for va:", v_label, retrieval_test_label[score_index_a[0:5]], score_index_a[0:5])
 
 	print("v-v:",rr_vv/testing_size)
 	print("v-a:",rr_va/testing_size)
@@ -288,7 +283,6 @@ def msvae_mrr():
 		print('num:{}, {}'.format(audio_id, dataset[test_l[audio_id]].rstrip('\n')))
 		a_input = retrieval_test_audio[audio_id,:]
 		a_input = np.expand_dims(a_input, axis=0)
-		#print(v_input.shape)
 		a_input = torch.from_numpy(a_input)
 		a_input = a_input.float()
 		a_input = a_input.cuda()
@@ -297,8 +291,6 @@ def msvae_mrr():
 
 		score_v = np.zeros(testing_size)
 		score_a = np.zeros(testing_size)
-		# top_v = np.zeros(5)
-		# top_a = np.zeros(5)
 		for i in range(testing_size):
 			visual_target = retrieval_test_visual[i,:]
 			visual_target = np.expand_dims(visual_target, axis=0)
@@ -324,13 +316,13 @@ def msvae_mrr():
 				rr_av += 1/(j+1)
 				print("found first index for av:",j+1)
 				break
-		print("top5 retrieved for av:", a_label, retrieval_test_label[score_index_v[0:5]], score_index_v[0:5])
+
 		for j in range(testing_size):
 			if a_label == retrieval_test_label[score_index_a[j]]:
 				rr_aa += 1/(j+1)
 				print("found first index for aa:",j+1)
 				break
-		print("top5 retrieved for aa:", a_label, retrieval_test_label[score_index_a[0:5]], score_index_a[0:5])
+
 
 	print("a-v:",rr_av/testing_size)
 	print("a-a:",rr_aa/testing_size)
@@ -365,10 +357,9 @@ if __name__ == '__main__':
 	vae_audio.cuda()
 	vae_video.cuda()
 
-	# vae_audio.load_state_dict(torch.load('msvae_a.pkl'))
-	# vae_video.load_state_dict(torch.load('msvae_v.pkl'))
-	vae_audio.load_state_dict(torch.load('vae_audio_baseline1.pkl'))
-	vae_video.load_state_dict(torch.load('vae_video_baseline1.pkl'))
+	vae_audio.load_state_dict(torch.load('msvae_a.pkl'))
+	vae_video.load_state_dict(torch.load('msvae_v.pkl'))
+
 
 
 	vv_mrr, va_mrr, av_mrr, aa_mrr = msvae_mrr()
