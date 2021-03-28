@@ -11,7 +11,6 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import h5py
 import torch.nn.functional as F
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import random
 from model_components import *
@@ -138,22 +137,12 @@ def test_cmm_a2v(video_feature, audio_feature):
 	#distance= 0
 		reconstructed_audio, mu1, logvar1 = vae_video(video_feature,vae_audio)
 		reconstructed_video, mu2, logvar2 = vae_audio(audio_feature,vae_video)
-		#print("mu:",mu1)
-		#print("logvar:",logvar1)
-		#loss1 = calculate_loss(output_feature, reconstructed_x, mu, logvar)
-		#distance_loss = loss1.item()
-		#loss1 = euclidean_dis(audio_feature, reconstructed_audio)
-		#loss = calculate_loss(audio_feature, reconstructed_audio, mu1, logvar1)
 		z1 = vae_video.reparameterize(mu1,logvar1)
 		z2 = vae_audio.reparameterize(mu2,logvar2)
 		loss1 = euclidean_dis(mu1,mu2)
 		loss2 = euclidean_dis(reconstructed_audio, reconstructed_video)
-		loss_MSE = nn.MSELoss()
-		loss3 = loss_MSE(reconstructed_audio, pair)
-		loss4 = loss_MSE(reconstructed_video, pair)
-		#distance_euc = loss2.item()
-		#print(loss1.item(), loss2.item(), loss3.item(), loss4.item())
-	return loss1.item()*0.5 + loss2.item()*0.5 + loss3.item()*0 + loss4.item()*0
+
+	return loss1.item()*0.5 + loss2.item()*0.5 
 
 
 
@@ -167,24 +156,12 @@ def test_cmm_v2a(video_feature, audio_feature):
 	#distance= 0
 		reconstructed_audio, mu1, logvar1 = vae_video(video_feature, vae_audio)
 		reconstructed_video, mu2, logvar2 = vae_audio(audio_feature, vae_video)
-		#print(reconstructed_audio.size())
-		#print("mu:",mu1)
-		#print("logvar:",logvar1)
-		#loss1 = calculate_loss(output_feature, reconstructed_x, mu, logvar)
-		#distance_loss = loss1.item()
-		#loss1 = euclidean_dis(video_feature, reconstructed_video)
-		#loss = calculate_loss(video_feature, reconstructed_video, mu2, logvar2)
 		z1 = vae_video.reparameterize(mu1,logvar1)
 		z2 = vae_audio.reparameterize(mu2,logvar2)
 		loss1 = euclidean_dis(mu1,mu2)
 		loss2 = euclidean_dis(reconstructed_audio, reconstructed_video)
-		loss_MSE = nn.MSELoss()
-		loss3 = loss_MSE(reconstructed_audio, pair)
-		loss4 = loss_MSE(reconstructed_video, pair)
-		#loss3 = loss_MSE(reconstructed_audio, reconstructed_video)
-		#distance_euc = loss2.item()
-		#print(loss1.item(), loss2.item())
-	return  loss1.item()*0.5 + loss2.item()*0.5 + loss3.item()*0 + loss4.item()*0
+
+	return  loss1.item()*0.5 + loss2.item()*0.5 
 
 
 
@@ -206,8 +183,6 @@ if __name__ == '__main__':
 
 	vae_audio.load_state_dict(torch.load('msvae_a.pkl'))
 	vae_video.load_state_dict(torch.load('msvae_v.pkl'))
-	# vae_audio.load_state_dict(torch.load('vae_audio_baseline1.pkl'))
-	# vae_video.load_state_dict(torch.load('vae_video_baseline1.pkl'))
 
 
 	print("Model load completed!")
