@@ -10,7 +10,6 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import h5py
 import torch.nn.functional as F
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 
