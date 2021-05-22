@@ -21,7 +21,7 @@ The pre-trained models are also available for download: [audio](https://drive.go
 #### 3. Citation
 Please consider citing our paper if you find it useful.
 ```
-@InProceedings{zhu2020describing,    
+@InProceedings{zhu2021learning,    
   author = {Zhu, Ye and Wu, Yu and Latapie, Hugo and Yang, Yi and Yan, Yan},    
   title = {Learning Audio-Visual Correlations from Variational Cross-Modal Generation},    
   booktitle = {International Conference on Acoustics, Speech, and Signal Processing(ICCASP)},    
